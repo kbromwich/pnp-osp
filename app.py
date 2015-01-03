@@ -30,6 +30,6 @@ if __name__ == '__main__':
 	port = int(os.environ['OPENSHIFT_PYTHON_PORT'])
 	app = imp.load_source('application', 'wsgi/application')
 	
-	print 'Starting gevent WSGIServer on %s:%d ... ' % (fwtype, ip, port)
+	print 'Starting gevent WSGIServer on %s:%d ... ' % (ip, port)
     http_server = WSGIServer((ip, port), my_app, handler_class=WebSocketHandler)
     http_server.serve_forever()
