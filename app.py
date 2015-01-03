@@ -31,7 +31,5 @@ if __name__ == '__main__':
 	app = imp.load_source('application', 'wsgi/application')
 	
 	print 'Starting gevent WSGIServer on %s:%d ... ' % (fwtype, ip, port)
-	WSGIServer((ip, port), app.application).serve_forever()
-	
     http_server = WSGIServer((ip, port), my_app, handler_class=WebSocketHandler)
     http_server.serve_forever()
