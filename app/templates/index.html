@@ -4,29 +4,50 @@
     <meta charset="utf-8">
 </head>
 <p>Websocket with Flask, Gevent and Gevent-websocket</p>
+<div id="logcontainer" style="overflow:auto;height:200px;border-style:solid;border-width:1px">
 <p id="log"></p>
+</div>
+<input type="text" id="text">
 <button id="send" type="button">Send!</button>
 <body>
     <script src="http://code.jquery.com/jquery-1.8.2.min.js"></script>
     <script>
+        var instanceId = "{{instanceId}}";
+        var webSocket = null;
+        
+        function onWebSocketMessage(rawjson) {
+            var json = JSON.parse(rawjson.data);
+            for (msg in json.messages) {
+                $("p#log").html($("p#log").html() + '<br>' + json.messages[msg]);
+            }
+            $("#logcontainer").scrollTop($("#logcontainer")[0].scrollHeight);
+        }
+        
         $(document).ready(function(){
+            window.history.pushState({}, "", "/" + instanceId);
+            
             if ("WebSocket" in window) {
-                ws = new WebSocket("ws://" + document.domain + ":8000/websocket");
-                ws.onmessage = function (msg) {
-                    var message = JSON.parse(msg.data);
-                    $("p#log").html(message.output);
-                };
+                webSocket = new WebSocket("ws://" + document.domain + ":8000/websocket");
+                webSocket.onmessage = function(msg) {onWebSocketMessage(msg);};
             };
 
             // Bind send button to websocket
+            // TODO: Handle 'enter' key as activation
             $("button#send").live("click", function() {
-                ws.send(JSON.stringify({'output': 'Sent from my browser!'}));
+                text = $("input#text").val();
+                if (text != "") {
+                    msg = {};
+                    msg['instanceId'] = instanceId;
+                    msg['output'] = text;
+                    webSocket.send(JSON.stringify(msg));
+                }
+                text = $("input#text").val("");
             });
 
             // Cleanly close websocket when unload window
             window.onbeforeunload = function() {
-                ws.onclose = function () {}; // disable onclose handler first
-                ws.close()
+                webSocket.onclose = function() {}; // disable onclose handler first
+                webSocket.close()
             };
         });
     </script>

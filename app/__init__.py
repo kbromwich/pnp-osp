@@ -10,9 +10,7 @@ app.debug = True
 
 def my_app(environ, start_response):
     path = environ["PATH_INFO"]
-    if path == "/":
-        return app(environ, start_response)  
-    elif path == "/websocket":
+    if path == "/websocket":
         handle_websocket(environ["wsgi.websocket"])
     else:
         return app(environ, start_response)
