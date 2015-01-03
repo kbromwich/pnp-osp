@@ -28,7 +28,6 @@ from app import my_app
 if __name__ == '__main__':
     ip = os.environ['OPENSHIFT_PYTHON_IP']
     port = int(os.environ['OPENSHIFT_PYTHON_PORT'])
-    app = imp.load_source('application', 'wsgi/application')
     
     print 'Starting gevent WSGIServer on %s:%d ... ' % (ip, port)
     http_server = WSGIServer((ip, port), my_app, handler_class=WebSocketHandler)
