@@ -1,0 +1,4 @@
+export OPENSHIFT_PYTHON_DIR=.
+export OPENSHIFT_PYTHON_IP=
+export OPENSHIFT_PYTHON_PORT=8000
+python app.py

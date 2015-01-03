@@ -6,7 +6,6 @@
 # provided (cherrypi, gevent), but this file may be altered to run
 # whatever framework is desired - or a completely customized service.
 #
-import imp
 import os
 
 try:
