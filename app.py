@@ -10,11 +10,11 @@ import imp
 import os
 
 try:
-   zvirtenv = os.path.join(os.environ['OPENSHIFT_PYTHON_DIR'],
-                           'virtenv', 'bin', 'activate_this.py')
-   execfile(zvirtenv, dict(__file__ = zvirtenv) )
+    zvirtenv = os.path.join(os.environ['OPENSHIFT_PYTHON_DIR'],
+                            'virtenv', 'bin', 'activate_this.py')
+    execfile(zvirtenv, dict(__file__ = zvirtenv) )
 except IOError:
-   pass
+    pass
 
 #
 # IMPORTANT: Put any additional includes below this line.  If placed above this
@@ -26,10 +26,10 @@ from geventwebsocket.handler import WebSocketHandler
 from app import my_app
 
 if __name__ == '__main__':
-	ip   = os.environ['OPENSHIFT_PYTHON_IP']
-	port = int(os.environ['OPENSHIFT_PYTHON_PORT'])
-	app = imp.load_source('application', 'wsgi/application')
-	
-	print 'Starting gevent WSGIServer on %s:%d ... ' % (ip, port)
+    ip = os.environ['OPENSHIFT_PYTHON_IP']
+    port = int(os.environ['OPENSHIFT_PYTHON_PORT'])
+    app = imp.load_source('application', 'wsgi/application')
+    
+    print 'Starting gevent WSGIServer on %s:%d ... ' % (ip, port)
     http_server = WSGIServer((ip, port), my_app, handler_class=WebSocketHandler)
     http_server.serve_forever()
