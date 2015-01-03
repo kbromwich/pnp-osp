@@ -4,6 +4,8 @@
     <meta charset="utf-8">
 </head>
 <p>Websocket with Flask, Gevent and Gevent-websocket</p>
+<label>Username:</label>
+<input type="text" id="username">
 <div id="logcontainer" style="overflow:auto;height:200px;border-style:solid;border-width:1px">
 <p id="log"></p>
 </div>
@@ -12,44 +14,72 @@
 <body>
     <script src="http://code.jquery.com/jquery-1.8.2.min.js"></script>
     <script>
-        var instanceId = "{{instanceId}}";
-        var webSocket = null;
+    var clientId = "{{clientId}}";
+    var instanceId = "{{instanceId}}";
+    var webSocket = null;
+    
+    $(document).ready(function(){
+        window.history.pushState({}, "", "/" + instanceId);
         
-        function onWebSocketMessage(rawjson) {
-            var json = JSON.parse(rawjson.data);
-            for (msg in json.messages) {
-                $("p#log").html($("p#log").html() + '<br>' + json.messages[msg]);
-            }
-            $("#logcontainer").scrollTop($("#logcontainer")[0].scrollHeight);
-        }
-        
-        $(document).ready(function(){
-            window.history.pushState({}, "", "/" + instanceId);
-            
-            if ("WebSocket" in window) {
-                webSocket = new WebSocket("ws://" + document.domain + ":8000/websocket");
-                webSocket.onmessage = function(msg) {onWebSocketMessage(msg);};
+        // WebSocket setup
+        if ("WebSocket" in window) {
+            webSocket = new WebSocket("ws://" + document.domain + ":8000/websocket");
+            webSocket.onmessage = function(msg) {onWebSocketMessage(msg);};
+            webSocket.onopen = function() {
+                webSocket.send(JSON.stringify({'type': 'refresh', 'instanceId': instanceId}));
             };
+        };
 
-            // Bind send button to websocket
-            // TODO: Handle 'enter' key as activation
-            $("button#send").live("click", function() {
-                text = $("input#text").val();
-                if (text != "") {
-                    msg = {};
-                    msg['instanceId'] = instanceId;
-                    msg['output'] = text;
-                    webSocket.send(JSON.stringify(msg));
-                }
-                text = $("input#text").val("");
-            });
-
-            // Cleanly close websocket when unload window
-            window.onbeforeunload = function() {
-                webSocket.onclose = function() {}; // disable onclose handler first
-                webSocket.close()
-            };
+        // Text message sending
+        $("button#send").live("click", function() {
+            sendTextMessage();
         });
+        $("input#text").keyup(function(event){
+            if(event.keyCode == 13) { // Enter key
+                sendTextMessage();
+            }
+        });
+        
+        // Username Storage
+        if(typeof(Storage)!=="undefined") {
+            $("input#username").val(localStorage.getItem('username'));
+            $("input#username").keyup(function(event){
+                    localStorage.setItem('username', $("input#username").val());
+            });
+        }
+
+        // Cleanly close websocket when unload window
+        window.onbeforeunload = function() {
+            webSocket.onclose = function() {}; // disable onclose handler first
+            webSocket.close()
+        };
+    });
+    
+    function onWebSocketMessage(rawjson) {
+        var json = JSON.parse(rawjson.data);
+        for (var msgIndex in json.messages) {
+            var msg = json.messages[msgIndex];
+            var line = msg['username'] + ': ' + msg['text'];
+            $("p#log").html($("p#log").html() + '<br>' + line);
+        }
+        $("#logcontainer").scrollTop($("#logcontainer")[0].scrollHeight);
+    }
+    
+    function sendTextMessage() {
+        var text = $("input#text").val();
+        var user = $("input#username").val();
+        if (user == "") {
+            user = "Anonymous" +  clientId;
+        }
+        if (text != "") {
+            msg = {'type': 'text'};
+            msg['username'] = user;
+            msg['instanceId'] = instanceId;
+            msg['text'] = text;
+            webSocket.send(JSON.stringify(msg));
+        }
+        text = $("input#text").val("");
+    }
     </script>
 </body>
 </html>

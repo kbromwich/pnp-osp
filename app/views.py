@@ -12,7 +12,13 @@ def index():
 
 @app.route('/<instanceId>')
 def instance(**kwargs):
-    instanceId = kwargs.get('instanceId')
-    if instanceId is None:
-        instanceId = binascii.b2a_hex(os.urandom(3))
-    return render_template('index.html', instanceId=instanceId)
+    template_args = {}
+    id = kwargs.get('instanceId')
+    if id is None:
+        id = binascii.b2a_hex(os.urandom(3))
+    template_args['instanceId'] = id
+    template_args['clientId'] = short_hash(request.remote_addr)
+    return render_template('index.html', **template_args)
+    
+def short_hash(input):
+    return abs(hash(input)) % (10 ** 4)
