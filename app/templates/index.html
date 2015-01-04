@@ -1,22 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <title>PnP Online Helper</title>
     <meta charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="static/index.css">
 </head>
-<p>Websocket with Flask, Gevent and Gevent-websocket</p>
-<label>Username:</label>
-<input type="text" id="username">
-<div id="logcontainer" style="overflow:auto;height:200px;border-style:solid;border-width:1px">
-<p id="log"></p>
-</div>
-<input type="text" id="text">
-<button id="send" type="button">Send!</button>
 <body>
-    <script src="http://code.jquery.com/jquery-1.8.2.min.js"></script>
+    <div id="maincontainer">
+        <div id="sidebar">
+            <div>
+                <h1>Pen and Paper Online Helper</h1>
+                <h3>by Narotak Software<h3>
+            </div>
+            <label>Username:</label>
+            <input type="text" id="username">
+            <div>
+                <div id="logcontainer">
+                    <p id="log"></p>
+                </div>
+                <input type="text" id="text">
+                <button id="send" type="button">Send!</button>
+            </div>
+            <div>
+                <button id="rollD5" type="button">Roll D5!</button>
+                <button id="rollD6" type="button">Roll D6!</button>
+                <button id="rollD10" type="button">Roll D10!</button>
+                <button id="rollD20" type="button">Roll D20!</button>
+                <button id="rollD100" type="button">Roll D100!</button>
+            </div>
+        </div>
+        <div id="drawcontainer">
+            <canvas id="drawcanvas">
+            </canvas>
+        </div>
+    </div>
+    <script type="text/javascript" src="static/js/jquery-2.1.3.min.js"></script>
+    <script type="text/javascript" src="static/js/moment.js"></script>
     <script>
     var clientId = "{{clientId}}";
     var instanceId = "{{instanceId}}";
     var webSocket = null;
+    var username = "";
     
     $(document).ready(function(){
         window.history.pushState({}, "", "/" + instanceId);
@@ -26,12 +50,12 @@
             webSocket = new WebSocket("ws://" + document.domain + ":8000/websocket");
             webSocket.onmessage = function(msg) {onWebSocketMessage(msg);};
             webSocket.onopen = function() {
-                webSocket.send(JSON.stringify({'type': 'refresh', 'instanceId': instanceId}));
+                sendMessage('refresh', {});
             };
-        };
+        }
 
         // Text message sending
-        $("button#send").live("click", function() {
+        $("button#send").click(function() {
             sendTextMessage();
         });
         $("input#text").keyup(function(event){
@@ -40,18 +64,31 @@
             }
         });
         
-        // Username Storage
-        if(typeof(Storage)!=="undefined") {
+        // Dice Rolling
+        $("button[id^=roll]").click(function() {
+            var id = $(this).attr('id');
+            dice = /^roll(D\d+)$/i.exec(id)[1]
+            sendMessage('dice', {'dice': dice});
+        });
+        
+        // Username
+        if (typeof(Storage)!=="undefined") {
             $("input#username").val(localStorage.getItem('username'));
             $("input#username").keyup(function(event){
-                    localStorage.setItem('username', $("input#username").val());
+                localStorage.setItem('username', $("input#username").val());
             });
         }
+        $("input#username").blur(function() {
+            if (username != getUsername()) {
+                sendMessage('rename', {});
+                username = getUsername();
+            }
+        });
 
-        // Cleanly close websocket when unload window
+        // Cleanly close websocket when unloading window
         window.onbeforeunload = function() {
             webSocket.onclose = function() {}; // disable onclose handler first
-            webSocket.close()
+            webSocket.close();
         };
     });
     
@@ -59,7 +96,9 @@
         var json = JSON.parse(rawjson.data);
         for (var msgIndex in json.messages) {
             var msg = json.messages[msgIndex];
-            var line = msg['username'] + ': ' + msg['text'];
+            var time = formatTime(parseDate(msg['date']));
+            var line = '<p class="user">' + msg['username'] + ' (' + time + '):</p>'
+            line += '<p class="message">' + msg['text'] +'</p>';
             $("p#log").html($("p#log").html() + '<br>' + line);
         }
         $("#logcontainer").scrollTop($("#logcontainer")[0].scrollHeight);
@@ -67,18 +106,36 @@
     
     function sendTextMessage() {
         var text = $("input#text").val();
+        if (text != "") {
+            sendMessage('text', {'text': text});
+        }
+        text = $("input#text").val("");
+    }
+    
+    function sendMessage(type, data) {
+        msg = {'type': type};
+        msg['username'] = getUsername();
+        msg['instanceId'] = instanceId;
+        for (key in data) {
+            msg[key] = data[key];
+        }
+        webSocket.send(JSON.stringify(msg));
+    }
+    
+    function getUsername() {
         var user = $("input#username").val();
         if (user == "") {
             user = "Anonymous" +  clientId;
         }
-        if (text != "") {
-            msg = {'type': 'text'};
-            msg['username'] = user;
-            msg['instanceId'] = instanceId;
-            msg['text'] = text;
-            webSocket.send(JSON.stringify(msg));
-        }
-        text = $("input#text").val("");
+        return user;
+    }
+    
+    function formatTime(date) {
+        return date.format("HH:MM:SS");
+    }
+    
+    function parseDate(input) {
+        return moment(input);
     }
     </script>
 </body>
