@@ -18,14 +18,14 @@ class Instance(object):
     def add_client(self, ws, msg):
         meta = self.extract_client_meta(ws, msg)
         name = meta['username']
-        self.announce(name + ' has joined the room.')
+        self.announce(name + ' has connected.')
         self.clients[ws] = meta
     
     def remove_client(self, ws):
         meta = self.clients[ws]
         del self.clients[ws]
         name = meta['username']
-        self.announce(name + ' has left the room.')
+        self.announce(name + ' has disconnected.')
         self.last_client_time = datetime.datetime.utcnow()
         if len(self.clients) == 0:
             # TODO: queue task to remove instance after 30 mins
@@ -47,9 +47,9 @@ class Instance(object):
         elif msg['type'] == 'rename':
             self.rename_client(ws, prev_meta)
         elif msg['type'] == 'text':
-            self.broadcast(msg)
+            self.broadcast_text(msg)
         elif msg['type'] == 'draw':
-            pass
+            self.broadcast_draw(msg)
         elif msg['type'] == 'dice':
             self.client_dice_roll(ws, msg)
         
@@ -61,6 +61,7 @@ class Instance(object):
             
     def refresh_client(self, client):
         self.send_client_texts(client, self.history_texts)
+        self.send_client_draws(client, self.history_draws)
         
     def client_dice_roll(self, client, msg):
         diceMatch = re.match("^D(\d+)$", msg['dice'], flags=re.I)
@@ -73,24 +74,36 @@ class Instance(object):
         msg = {'instanceId': self.instanceId}
         msg['username'] = 'System'
         msg['text'] = message
-        self.broadcast(msg)
+        self.broadcast_text(msg)
         
-    def broadcast(self, msg):
+    def broadcast_text(self, msg):
         msg['date'] = get_now()
         self.history_texts.append(msg)
         for client in self.clients:
             self.send_client_texts(client, [msg])
         
     def send_client_texts(self, client, texts):
-        reply = {}
+        reply = {'type': 'text'}
         reply['instanceId'] = self.instanceId
         reply['messages'] = texts
+        client.send(json.dumps(reply))
+        
+    def broadcast_draw(self, msg):
+        msg['date'] = get_now()
+        self.history_draws.append(msg)
+        for client in self.clients:
+            self.send_client_draws(client, [msg])
+        
+    def send_client_draws(self, client, draws):
+        reply = {'type': 'draw'}
+        reply['instanceId'] = self.instanceId
+        reply['draws'] = draws
         client.send(json.dumps(reply))
         
         
 def get_now():
     now = datetime.datetime.utcnow()
-    return now.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+    return now.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
         
 def get_instance(instanceId):
     if INSTANCES.get(instanceId) is None:

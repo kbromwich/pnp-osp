@@ -28,23 +28,48 @@
                 <button id="rollD20" type="button">Roll D20!</button>
                 <button id="rollD100" type="button">Roll D100!</button>
             </div>
+            <p class="optionsHeading">Drawing Options</p>
+            <div id="brushType">
+                <input type="radio" name="brushType" value="free" checked="checked">Free<br>
+                <input type="radio" name="brushType" value="line">Line<br>
+                <input type="radio" name="brushType" value="rect">Rectangle<br>
+                <input type="radio" name="brushType" value="rectCentre">Centred Rectangle<br>
+                <input type="radio" name="brushType" value="circ">Circle<br>
+                <input type="radio" name="brushType" value="circCentre">Centred Circle<br>
+            </div>
+            <div id="brushEffect">
+                <input type="radio" name="brushEffect" value="normal">Normal<br>
+                <input type="radio" name="brushEffect" value="temp" checked="checked">Temporary<br>
+                <input type="radio" name="brushEffect" value="entity">Entity<br>
+            </div>
         </div>
         <div id="drawcontainer">
-            <canvas id="drawcanvas">
-            </canvas>
         </div>
     </div>
     <script type="text/javascript" src="static/js/jquery-2.1.3.min.js"></script>
     <script type="text/javascript" src="static/js/moment.js"></script>
+    <script type="text/javascript" src="static/js/pnp-brushes.js"></script>
+    <script type="text/javascript" src="static/js/pnp-drawing.js"></script>
     <script>
     var clientId = "{{clientId}}";
     var instanceId = "{{instanceId}}";
     var webSocket = null;
+    var drawPad = null;
     var username = "";
     
     $(document).ready(function(){
         window.history.pushState({}, "", "/" + instanceId);
+
+        setupWebsocket();
+        setupChatInputs();
+        setupUsername();
         
+        // Canvas
+        var drawCon = $('#drawcontainer');
+        drawPad = createOnlineDrawPad(drawCon, sendMessage);
+    });
+    
+    function setupWebsocket() {
         // WebSocket setup
         if ("WebSocket" in window) {
             webSocket = new WebSocket("ws://" + document.domain + ":8000/websocket");
@@ -54,6 +79,14 @@
             };
         }
 
+        // Cleanly close websocket when unloading window
+        window.onbeforeunload = function() {
+            webSocket.onclose = function() {}; // disable onclose handler first
+            webSocket.close();
+        };
+    }
+    
+    function setupChatInputs() {
         // Text message sending
         $("button#send").click(function() {
             sendTextMessage();
@@ -70,7 +103,9 @@
             dice = /^roll(D\d+)$/i.exec(id)[1]
             sendMessage('dice', {'dice': dice});
         });
-        
+    }
+    
+    function setupUsername() {
         // Username
         if (typeof(Storage)!=="undefined") {
             $("input#username").val(localStorage.getItem('username'));
@@ -84,16 +119,18 @@
                 username = getUsername();
             }
         });
-
-        // Cleanly close websocket when unloading window
-        window.onbeforeunload = function() {
-            webSocket.onclose = function() {}; // disable onclose handler first
-            webSocket.close();
-        };
-    });
+    }
     
     function onWebSocketMessage(rawjson) {
         var json = JSON.parse(rawjson.data);
+        if (json.type == 'draw') {
+            drawPad.onDrawMessage(json['draws']);
+        } else if (json.type == 'text') {
+            onTextMessage(json);
+        }
+    }
+    
+    function onTextMessage(json) {
         for (var msgIndex in json.messages) {
             var msg = json.messages[msgIndex];
             var time = formatTime(parseDate(msg['date']));
@@ -113,7 +150,7 @@
     }
     
     function sendMessage(type, data) {
-        msg = {'type': type};
+        var msg = {'type': type};
         msg['username'] = getUsername();
         msg['instanceId'] = instanceId;
         for (key in data) {
@@ -131,11 +168,11 @@
     }
     
     function formatTime(date) {
-        return date.format("HH:MM:SS");
+        return date.local().format("HH:mm:ss");
     }
     
     function parseDate(input) {
-        return moment(input);
+        return moment.utc(input, "YYYY-MM-DD[T]HH:mm:ss:SSS[Z]");
     }
     </script>
 </body>

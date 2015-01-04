@@ -1,5 +1,5 @@
 html, body {
-    background-color: lightblue;
+    background-color: #6AA;
     margin: 0px;
     padding: 0px;
     height: 100%;
@@ -9,7 +9,7 @@ html, body {
 h1 {
     color: navy;
     margin: 5px 5px 5px 15px;
-    font-size: 24px;
+    font-size: 20px;
 }
 h3 {
     color: navy;
@@ -23,13 +23,14 @@ h3 {
 }
 #sidebar {
     float: left;
-    width:20%;
+    width:18%;
     height:100%;
     display:inline;
 }
 #logcontainer {
     overflow:auto;
     height: 600px;
+    background-color: #9CC;
     border-style:solid;
     border-width:1px;
     font-size:14px;
@@ -44,9 +45,25 @@ p.message {
     margin: 0 0 0 0;
 }
 
+p.optionsHeading {
+    text-align:center;
+    padding: 0 0 0 0;
+    margin: 5px 40px 1px 0;
+}
+div#brushType {
+    float: left;
+    width:50%;
+    display:inline;
+}
+div#brushEffect {
+    float: right;
+    width:50%;
+    display:inline;
+}
+
 #drawcontainer {
     float: right;
-    width:80%;
+    width:82%;
     height: 100%;
     background-color:#FFFFFF;
     display: inline;
